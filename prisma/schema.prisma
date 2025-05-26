@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"            // switch to postgres in prod
+  url      = env("DATABASE_URL")
+}
+
+/* ── Billing plan for quotas ───────────────────────── */
+enum Plan {
+  FREE   // 10 generations / 24 h
+  PRO    // unlimited
+}
+
+/* ── Authenticated user ─────────────────────────────── */
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+
+  hooks     HookLog[]
+  chats     Chat[]
+}
+
+/* ── Every AI generation (used to enforce quota) ───── */
+model HookLog {
+  id        String   @id @default(cuid())
+  prompt    String
+  result    Json
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+/* ── Saved chat for reopening later ────────────────── */
+model Chat {
+  id        String   @id @default(cuid())
+  title     String
+  prompt    String
+  result    Json
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
